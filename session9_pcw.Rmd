@@ -1,0 +1,234 @@
+---
+title: 'Session 9: Geospatial Data in R'
+author: "Norika and Marina"
+date: "2023-03-02"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Part 1:Map Map Map!
+
+## Preparation
+
+This code is generating **maps of the United States and California** with marked cities. Let's load the 'maps' package and use 'us.cities' data set
+
+```{r maps}
+library(maps)
+data(us.cities)
+head(us.cities)
+```
+
+### Questions 1:
+Explain what kind of information does us.cities dataframe have. Which columns represent the geographical information of each city?
+
+EXTRA CELL TO ANSWER
+
+## Drawing a map: USA
+
+Next, it draws a map of the entire USA with the map() function. It then creates a subset of the 'us.cities' data set, selecting only those cities that are state capitals.
+
+```{r usa }
+map(database = "usa") 
+capitals <- subset(us.cities, capital == 2) # subset state capitals
+
+```
+
+
+## Decorations! 
+Let's add points to the map using the points() function, with the size of the points proportional to the city's population. Also, let's add a title to the map using the title() function.
+
+```{r usa2 }
+map(database = "usa") 
+capitals <- subset(us.cities, capital == 2) # subset state capitals
+
+## add points proportional to population using latitude and longitude
+points(x = capitals$long, y = capitals$lat,
+       cex = capitals$pop / 500000, pch = 19) 
+title("US state capitals") # add a title
+```
+
+Let's try the same thing at state level!
+
+## Drawing a map: CA
+
+```{r ca }
+map(database = "state", regions = "California")
+```
+
+In the cell below, we creates a subset of the 'us.cities' data set with only the cities in California. It then orders the California cities by population, selects the top seven, and adds points to the California map with the points() function.
+
+```{r ca2 }
+cal.cities <- subset(us.cities, subset = (country.etc == "CA"))
+sind <- order(cal.cities$pop, decreasing = TRUE) # order by population
+top7 <- sind[1:7] # seven cities with largest population
+
+map(database = "state", regions = "California")
+
+points(x = cal.cities$long[top7], y = cal.cities$lat[top7], pch = 19)
+
+## add a constant to latitude to avoid overlapping with circles
+text(x = cal.cities$long[top7] + 2.25, y = cal.cities$lat[top7],
+     label = cal.cities$name[top7])
+title("Largest cities of California")
+```
+
+# Part 1:Map Map Map! YOUR TURN
+
+What is your favorite state? Plot it and their top seven cities by following the code we just saw above!
+
+```{r student }
+# map(database = "state", regions = "__________")
+```
+
+```{r student2 }
+# ____.cities <- subset(us.cities, subset = (country.etc == "_____"))
+# sind <- order(___.cities$pop, decreasing = TRUE) # order by population
+# top7 <- sind[1:7] # seven cities with largest population
+
+# map(database = "state", regions = "________")
+
+# points(x = ____.cities$long[top7], y = ____.cities$lat[top7], pch = 19)
+
+# text(x = ____.cities$long[top7] , y = ____.cities$lat[top7],
+  #    label = ____.cities$name[top7])
+# title("Largest cities of ______")
+
+```
+
+Good Jobs!!! Now you master how to use map() function and add title/text/ points etc. to decorate it !
+
+
+# Part 2: Election!!!
+Are you bored with just mapping some state? Let's do a bit more fun visualization with election vote data in US!
+### Preparation
+First, we will read the csv file from the following url.
+```{r c }
+pres08 <- read.csv(url("https://raw.githubusercontent.com/NorikaNarimatsu/tutorial_geospatial_analysis/main/pres08.csv"))
+```
+
+### California Vote 
+Then, this is a recap from part 1. We will map the California and specify its color as blue because they are known as democratic state. 
+```{r ca3 }
+## California as a blue state
+map(database = "state", regions = "California", col = "blue", 
+    fill = TRUE)
+```
+
+
+
+Hmmm, is it still boring? Then, let's try to calculate the vote share and find the shade of purple!
+The code creates a color for California based on the vote share. This is done by using the rgb() function to create a color that is a combination of red and blue, with the amount of red and blue determined by the Republican and Democratic vote shares, respectively.
+
+```{r ca4 }
+## two-party vote share
+pres08$Dem <- pres08$Obama / (pres08$Obama + pres08$McCain)
+pres08$Rep <- pres08$McCain / (pres08$Obama + pres08$McCain)
+
+## color for California
+cal.color <- rgb(red = pres08$Rep[pres08$state == "CA"], 
+                 blue = pres08$Dem[pres08$state == "CA"], 
+                 green = 0)
+
+## California as a purple state
+map(database = "state", regions = "California", col = cal.color,
+    fill = TRUE)
+```
+
+
+
+Nice! Let's expand out analysis to whole USA! The code then creates a map of the entire United States, with each state colored either red or blue depending on whether the Republican or Democratic candidate won the state. The code uses a for loop to iterate over each row of the dataset and call the map() function for each state.
+
+```{r usa_08 }
+
+## America as red and blue states
+map(database = "state") # for some reason this needs to be repeated twice to get the map correct if you run markdown
+for (i in 1:nrow(pres08)) {
+    if ((pres08$state[i] != "HI") & (pres08$state[i] != "AK") &
+        (pres08$state[i] != "DC")) {
+        maps::map(database = "state", regions = pres08$state.name[i],
+            col = ifelse(pres08$Rep[i] > pres08$Dem[i], "red", "blue"),
+            fill = TRUE, add = TRUE)
+    }
+}
+title("US Election 2008") # add a title
+```
+
+
+
+Yes !!! Let's try the shade version too! 
+```{r usa2_12 }
+
+## America as purple states
+map(database = "state") # create a map
+for (i in 1:nrow(pres08)) {
+    if ((pres08$state[i] != "HI") & (pres08$state[i] != "AK") &
+        (pres08$state[i] != "DC")) {
+        map(database = "state", regions = pres08$state.name[i], 
+            col = rgb(red = pres08$Rep[i], blue = pres08$Dem[i],
+                green = 0), fill = TRUE, add = TRUE)
+    }
+}
+title("US Election 2008") # add a title
+```
+Perfecct! Now it is your turn to do the same analysis with data from 2012 election!
+
+# Part 2: Election! YOUR TURN!!!
+Since there is no column called "state.name" in pres12 dataset, we did data preparation for you! In the cells below, you should visualize the 1) the red and blue map for US, and 2) the shade of purple map for US! 
+
+```{r president2 }
+
+pres12 <- read.csv(url("https://raw.githubusercontent.com/NorikaNarimatsu/tutorial_geospatial_analysis/main/pres12.csv"))
+# select the state and state.name columns from pres08
+pres08_states <- pres08[, c("state", "state.name")]
+# merge the state.name column from pres08 into pres12 based on the common state column
+pres12 <- merge(pres12, pres08_states, by = "state", all.x = TRUE)
+# view the merged dataframe
+head(pres12)
+```
+
+### 1) the red and blue map for US,
+EXTRA CELL
+```{r usa_student1 }
+
+## America as red and blue states
+# map(database = "state") # for some reason this needs to be repeated twice to get the map correct if you run markdown
+
+# for (i in 1:nrow(___)) {
+#    if ((_____$state[i] != "HI") & (_____$state[i] != "AK") &
+#        (_____$state[i] != "DC")) {
+#        maps::map(database = "state", regions = _____$state.name[i],
+#            col = ifelse(_____________ , "red", "blue"),
+#            fill = TRUE, add = TRUE)
+#    }
+#}
+#title("___________") # add a title
+```
+### 2) the shade of purple map for US! 
+```{r usa_student2 }
+
+## America as purple states
+# map(database = "state") # create a map
+# for (i in 1:nrow(____)) {
+#     if ((___$state[i] != "HI") & (___$state[i] != "AK") &
+#         (___$state[i] != "DC")) {
+#         map(database = "state", regions = _________, 
+#             col = rgb(red = _______, blue = ________,
+#                 green = 0), fill = TRUE, add = TRUE)
+#     }
+# }
+# title("_______") # add a title
+```
+### Questions 2:
+Did you find any difference in the vote share between 2008 and 2012? 
+EXTRA CELL
+
+### Questions 3:
+Do you have any remaining questions about this pcw, especailly coding part? Write down your questions here and bring your confusions to the class! 
+EXTRA CELL
+
+
